@@ -74,7 +74,7 @@ public class FinderPatternFinder {
     return possibleCenters;
   }
 
-  final FinderPatternInfo find(Map<DecodeHintType,?> hints) throws NotFoundException {
+  public final FinderPatternInfo find(Map<DecodeHintType,?> hints) throws NotFoundException {
     boolean tryHarder = hints != null && hints.containsKey(DecodeHintType.TRY_HARDER);
     int maxI = image.getHeight();
     int maxJ = image.getWidth();
@@ -111,7 +111,7 @@ public class FinderPatternFinder {
                 if (confirmed) {
                   // Start examining every other line. Checking each line turned out to be too
                   // expensive and didn't improve performance.
-                  iSkip = 2;
+                  iSkip = 1;
                   if (hasSkipped) {
                     done = haveMultiplyConfirmedCenters();
                   } else {
@@ -172,7 +172,7 @@ public class FinderPatternFinder {
    * figures the location of the center of this run.
    */
   private static float centerFromEnd(int[] stateCount, int end) {
-    return (end - stateCount[4] - stateCount[3]) - stateCount[2] / 2.0f;
+    return (end - stateCount[4] - stateCount[3]) - stateCount[2] / 1.8f;
   }
 
   /**
@@ -193,7 +193,7 @@ public class FinderPatternFinder {
       return false;
     }
     float moduleSize = totalModuleSize / 7.0f;
-    float maxVariance = moduleSize / 2.0f;
+    float maxVariance = moduleSize / 1.8f;
     // Allow less than 50% variance from 1-1-3-1-1 proportions
     return
         Math.abs(moduleSize - stateCount[0]) < maxVariance &&
@@ -254,7 +254,7 @@ public class FinderPatternFinder {
    * After a vertical and horizontal scan finds a potential finder pattern, this method
    * "cross-cross-cross-checks" by scanning down diagonally through the center of the possible
    * finder pattern to see if the same proportion is detected.
-   * 
+   *
    * @param centerI row where a finder pattern was detected
    * @param centerJ center of the section that appears to cross a finder pattern
    * @return true if proportions are withing expected limits
