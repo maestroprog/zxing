@@ -83,7 +83,7 @@ public class Detector {
     return processFinderPatternInfo(info);
   }
 
-  protected final DetectorResult processFinderPatternInfo(FinderPatternInfo info)
+  public final DetectorResult processFinderPatternInfo(FinderPatternInfo info)
       throws NotFoundException, FormatException {
 
     FinderPattern topLeft = info.getTopLeft();

@@ -46,7 +46,7 @@ import java.util.Map;
  * @author Sean Owen
  * @author Hannes Erven
  */
-final class MultiFinderPatternFinder extends FinderPatternFinder {
+public final class MultiFinderPatternFinder extends FinderPatternFinder {
 
   private static final FinderPatternInfo[] EMPTY_RESULT_ARRAY = new FinderPatternInfo[0];
 
@@ -89,7 +89,7 @@ final class MultiFinderPatternFinder extends FinderPatternFinder {
    *
    * @param image image to search
    */
-  MultiFinderPatternFinder(BitMatrix image) {
+  public MultiFinderPatternFinder(BitMatrix image) {
     super(image);
   }
 
@@ -140,7 +140,7 @@ final class MultiFinderPatternFinder extends FinderPatternFinder {
      * counterintuitive at first, but the performance penalty is not that big. At this point,
      * we cannot make a good quality decision whether the three finders actually represent
      * a QR code, or are just by chance layouted so it looks like there might be a QR code there.
-     * So, if the layout seems right, lets have the decoder try to decode.     
+     * So, if the layout seems right, lets have the decoder try to decode.
      */
 
      List<FinderPattern[]> results = new ArrayList<>(); // holder for the results
