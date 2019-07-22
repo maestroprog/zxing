@@ -42,7 +42,7 @@ public class HardFinder {
    * Поиск с подтверждением и уточнением местонахождения QR кода в определённой позиции.
    * Возвращает все возможные корректные координаты QR кода.
    */
-  public DetectorResult[] findConfirm(FinderPatternInfo info, int radius, int step) throws NotFoundException {
+  public DetectorResult[] findConfirm(FinderPatternInfo info, int radius) throws NotFoundException {
 
     ArrayList<DetectorResult> detectorResults = new ArrayList<>();
 
@@ -50,18 +50,18 @@ public class HardFinder {
     FinderPattern bl = info.getBottomLeft();
     FinderPattern tr = info.getTopRight();
 
-    for (int blX = (int) bl.getX(); blX < bl.getX() + radius; blX += step) {
-      for (int blY = (int) bl.getY(); blY < bl.getY() + radius; blY += step) {
+    for (int blX = (int) bl.getX(); blX < bl.getX() + radius; blX += 1) {
+      for (int blY = (int) bl.getY(); blY < bl.getY() + radius; blY += 1) {
 
         FinderPattern _bl = new FinderPattern(blX, blY, bl.getEstimatedModuleSize(), bl.getCount());
 
-        for (int tlX = (int) tl.getX(); tlX < tl.getX() + radius; tlX += step) {
-          for (int tlY = (int) tl.getY(); tlY < tl.getY() + radius; tlY += step) {
+        for (int tlX = (int) tl.getX(); tlX < tl.getX() + radius; tlX += 1) {
+          for (int tlY = (int) tl.getY(); tlY < tl.getY() + radius; tlY += 1) {
 
             FinderPattern _tl = new FinderPattern(tlX, tlY, tr.getEstimatedModuleSize(), tl.getCount());
 
-            for (int trX = (int) tr.getX(); trX < tr.getX() + radius; trX += step) {
-              for (int trY = (int) tr.getY(); trY < tr.getY() + radius; trY += step) {
+            for (int trX = (int) tr.getX(); trX < tr.getX() + radius; trX += 1) {
+              for (int trY = (int) tr.getY(); trY < tr.getY() + radius; trY += 1) {
 
                 FinderPattern _tr = new FinderPattern(trX, trY, tr.getEstimatedModuleSize(), tr.getCount());
 

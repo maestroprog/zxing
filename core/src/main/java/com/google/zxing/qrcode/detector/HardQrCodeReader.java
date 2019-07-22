@@ -9,15 +9,14 @@ import com.google.zxing.qrcode.decoder.Decoder;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Function;
 
 public class HardQrCodeReader {
 
-  private static int MAX_RADIUS = 3;
-  private static int MAX_STEP = 3;
+  private static int MAX_RADIUS = 2;
+  private static int MAX_STEP = 1;
 
   public static void setMaxRadius(int maxRadius) {
     if (maxRadius > 4) {
@@ -37,8 +36,9 @@ public class HardQrCodeReader {
   private BufferedImage sourceImage;
 
   public HardQrCodeReader(BufferedImage image) {
-    sourceImage = resize(image, image.getWidth() * 3, image.getHeight() * 3);
+    sourceImage = image;
   }
+
 
   /**
    * Считывает и декодирует все QR коды.
@@ -51,47 +51,34 @@ public class HardQrCodeReader {
     newHints.put(DecodeHintType.TRY_HARDER, true);
 
     LuminanceThresholds[] thresholds = {
-//      new LuminanceThresholds(0x90, 0x40),
-      new LuminanceThresholds(0x90, 0x50),
-      new LuminanceThresholds(0x90, 0x60),
-//      new LuminanceThresholds(0x90, 0x70),
-
-//      new LuminanceThresholds(0x80, 0x40),
-      new LuminanceThresholds(0x80, 0x50),
-      new LuminanceThresholds(0x80, 0x60),
-//      new LuminanceThresholds(0x80, 0x70),
-
-//      new LuminanceThresholds(0xA0, 0x40),
-      new LuminanceThresholds(0xA0, 0x50),
+      new LuminanceThresholds(0, 0),
       new LuminanceThresholds(0xA0, 0x60),
-//      new LuminanceThresholds(0xA0, 0x70),
-
-//      new LuminanceThresholds(0xB0, 0x40),
-      new LuminanceThresholds(0xB0, 0x50),
+      new LuminanceThresholds(0x90, 0x60),
       new LuminanceThresholds(0xB0, 0x60),
-//      new LuminanceThresholds(0xB0, 0x70),
-
-//      new LuminanceThresholds(0xC0, 0x40),
-      new LuminanceThresholds(0xC0, 0x50),
-      new LuminanceThresholds(0xC0, 0x60),
-//      new LuminanceThresholds(0xC0, 0x70),
-
-//      new LuminanceThresholds(0xD0, 0x40),
-      new LuminanceThresholds(0xD0, 0x50),
-      new LuminanceThresholds(0xD0, 0x60),
-//      new LuminanceThresholds(0xD0, 0x70),
+      new LuminanceThresholds(0x70, 0x50),
+      new LuminanceThresholds(0x80, 0x60),
+      new LuminanceThresholds(0x70, 0x40),
+      new LuminanceThresholds(0x80, 0x50),
+      new LuminanceThresholds(0x90, 0x50),
+      new LuminanceThresholds(0xA0, 0x50),
+      new LuminanceThresholds(0xB0, 0x90),
+      new LuminanceThresholds(0xC0, 0x90),
     };
 
+    int tryes = 0;
     for (LuminanceThresholds threshold : thresholds) {
-
       BufferedImageLuminanceSource source = new BufferedImageLuminanceSource(sourceImage, threshold);
       InvertedLuminanceSource isource = new InvertedLuminanceSource(source);
       HybridBinarizer binarizer = new HybridBinarizer(isource);
       BinaryBitmap bitmap = new BinaryBitmap(binarizer);
       finder = new HardFinder(bitmap);
       try {
+        tryes++;
         infos = finder.findPredict(newHints);
       } catch (NotFoundException e) {
+        if (tryes == 1) {
+//          sourceImage = resize(sourceImage, sourceImage.getWidth(), sourceImage.getHeight());
+        }
         continue;
       }
 
@@ -140,28 +127,26 @@ public class HardQrCodeReader {
       find_cycle:
       for (int radius = 1; radius <= MAX_RADIUS; radius++) {
 
-        for (int step = 1; step <= MAX_STEP; step++) {
 
-          try {
+        try {
 
-            for (DetectorResult detectorResult : finder.findConfirm(info, radius, step)) {
+          for (DetectorResult detectorResult : finder.findConfirm(info, radius)) {
 
-              if (callback != null) {
-                try {
-                  if (callback.apply(detectorResult)) {
+            if (callback != null) {
+              try {
+                if (callback.apply(detectorResult)) {
 
-                    results.add(detectorResult);
+                  results.add(detectorResult);
 
-                    break find_cycle; // прерываем поиск кода, переходим к следующему коду
-                  }
-                } catch (Throwable ignored) {
-                  // Вдруг будут непонятные ошибки, пока ничего не делаем.
+                  break find_cycle; // прерываем поиск кода, переходим к следующему коду
                 }
+              } catch (Throwable ignored) {
+                // Вдруг будут непонятные ошибки, пока ничего не делаем.
               }
             }
-
-          } catch (NotFoundException ignored) {
           }
+
+        } catch (NotFoundException ignored) {
         }
       }
     }

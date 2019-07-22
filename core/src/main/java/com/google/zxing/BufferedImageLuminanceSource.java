@@ -16,10 +16,13 @@
 
 package com.google.zxing;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * This LuminanceSource implementation is meant for J2SE clients and our blackbox unit tests.
@@ -86,15 +89,24 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
             601 * ((pixel >> 8) & 0xFF) +
             117 * (pixel & 0xFF) +
             0x200) >> 10;
-          if (pixel >= thresholds.getLightColor()) {
-            pixel = 0xFF;
-          } else {
-            pixel = Math.max(0, pixel - thresholds.getBlackColor());
+          if (thresholds.getLightColor() != 0 || thresholds.getBlackColor() != 0) {
+            if (pixel >= thresholds.getLightColor()) {
+              pixel = 0xFF;
+            } else {
+              pixel = Math.max(0, pixel - thresholds.getBlackColor());
+            }
           }
           buffer[x] = pixel;
         }
         raster.setPixels(left, y, width, 1, buffer);
       }
+//      BufferedImage im = new BufferedImage(image.getWidth(),image.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+//      im.setData(raster);
+//      try {
+//        ImageIO.write(im,"png",new File("qrr.png"));
+//      } catch (IOException e) {
+//        e.printStackTrace();
+//      }
     }
     this.left = left;
     this.top = top;
