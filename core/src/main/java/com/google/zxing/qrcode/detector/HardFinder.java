@@ -50,18 +50,18 @@ public class HardFinder {
     FinderPattern bl = info.getBottomLeft();
     FinderPattern tr = info.getTopRight();
 
-    for (int blX = (int) bl.getX() - radius; blX < bl.getX() + radius; blX += step) {
-      for (int blY = (int) bl.getY() - radius; blY < bl.getY() + radius; blY += step) {
+    for (int blX = (int) bl.getX(); blX < bl.getX() + radius; blX += step) {
+      for (int blY = (int) bl.getY(); blY < bl.getY() + radius; blY += step) {
 
         FinderPattern _bl = new FinderPattern(blX, blY, bl.getEstimatedModuleSize(), bl.getCount());
 
-        for (int tlX = (int) tl.getX() - radius; tlX < tl.getX() + radius; tlX += step) {
-          for (int tlY = (int) tl.getY() - radius; tlY < tl.getY() + radius; tlY += step) {
+        for (int tlX = (int) tl.getX(); tlX < tl.getX() + radius; tlX += step) {
+          for (int tlY = (int) tl.getY(); tlY < tl.getY() + radius; tlY += step) {
 
             FinderPattern _tl = new FinderPattern(tlX, tlY, tr.getEstimatedModuleSize(), tl.getCount());
 
-            for (int trX = (int) tr.getX() - radius; trX < tr.getX() + radius; trX += step) {
-              for (int trY = (int) tr.getY() - radius; trY < tr.getY() + radius; trY += step) {
+            for (int trX = (int) tr.getX(); trX < tr.getX() + radius; trX += step) {
+              for (int trY = (int) tr.getY(); trY < tr.getY() + radius; trY += step) {
 
                 FinderPattern _tr = new FinderPattern(trX, trY, tr.getEstimatedModuleSize(), tr.getCount());
 

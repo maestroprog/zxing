@@ -33,15 +33,24 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
   private static final double MINUS_45_IN_RADIANS = -0.7853981633974483; // Math.toRadians(-45.0)
 
   private final BufferedImage image;
+  private final LuminanceThresholds thresholds;
   private final int left;
   private final int top;
 
-  public BufferedImageLuminanceSource(BufferedImage image) {
-    this(image, 0, 0, image.getWidth(), image.getHeight());
+  public BufferedImageLuminanceSource(BufferedImage image, LuminanceThresholds thresholds) {
+    this(image, 0, 0, image.getWidth(), image.getHeight(), thresholds);
   }
 
-  public BufferedImageLuminanceSource(BufferedImage image, int left, int top, int width, int height) {
+  public BufferedImageLuminanceSource(
+    BufferedImage image,
+    int left,
+    int top,
+    int width,
+    int height,
+    LuminanceThresholds thresholds
+  ) {
     super(width, height);
+    this.thresholds = thresholds;
 
     if (image.getType() == BufferedImage.TYPE_BYTE_GRAY) {
       this.image = image;
@@ -71,15 +80,21 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
           // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
           // (306*R) >> 10 is approximately equal to R*0.299, and so on.
           // 0x200 >> 10 is 0.5, it implements rounding.
-          buffer[x] =
-            (306 * ((pixel >> 16) & 0xFF) +
-              601 * ((pixel >> 8) & 0xFF) +
-              117 * (pixel & 0xFF) +
-              0x200) >> 10;
+
+//          buffer[x] = pixel | 0x00000000;
+          pixel = (306 * ((pixel >> 16) & 0xFF) +
+            601 * ((pixel >> 8) & 0xFF) +
+            117 * (pixel & 0xFF) +
+            0x200) >> 10;
+          if (pixel >= thresholds.getLightColor()) {
+            pixel = 0xFF;
+          } else {
+            pixel = Math.max(0, pixel - thresholds.getBlackColor());
+          }
+          buffer[x] = pixel;
         }
         raster.setPixels(left, y, width, 1, buffer);
       }
-
     }
     this.left = left;
     this.top = top;
@@ -117,7 +132,7 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
 
   @Override
   public LuminanceSource crop(int left, int top, int width, int height) {
-    return new BufferedImageLuminanceSource(image, this.left + left, this.top + top, width, height);
+    return new BufferedImageLuminanceSource(image, this.left + left, this.top + top, width, height, thresholds);
   }
 
   /**
@@ -148,7 +163,7 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
 
     // Maintain the cropped region, but rotate it too.
     int width = getWidth();
-    return new BufferedImageLuminanceSource(rotatedImage, top, sourceWidth - (left + width), getHeight(), width);
+    return new BufferedImageLuminanceSource(rotatedImage, top, sourceWidth - (left + width), getHeight(), width, thresholds);
   }
 
   @Override
@@ -176,7 +191,7 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
     int newRight = Math.min(sourceDimension - 1, oldCenterX + halfDimension);
     int newBottom = Math.min(sourceDimension - 1, oldCenterY + halfDimension);
 
-    return new BufferedImageLuminanceSource(rotatedImage, newLeft, newTop, newRight - newLeft, newBottom - newTop);
+    return new BufferedImageLuminanceSource(rotatedImage, newLeft, newTop, newRight - newLeft, newBottom - newTop, thresholds);
   }
 
 }
