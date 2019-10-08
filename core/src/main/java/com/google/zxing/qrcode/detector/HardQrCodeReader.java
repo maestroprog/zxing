@@ -48,6 +48,7 @@ public class HardQrCodeReader {
     ArrayList<Result> results = new ArrayList<>();
 
     Map<DecodeHintType, Object> newHints = new EnumMap<>(DecodeHintType.class);
+    newHints.put(DecodeHintType.CHARACTER_SET, "ISO-8859-1");
     newHints.put(DecodeHintType.TRY_HARDER, true);
 
     LuminanceThresholds[] thresholds = {
@@ -87,7 +88,7 @@ public class HardQrCodeReader {
         Decoder decoder = new Decoder();
         DecoderResult decoderResult;
         try {
-          decoderResult = decoder.decode(detectorResult.getBits());
+          decoderResult = decoder.decode(detectorResult.getBits(), newHints);
         } catch (ChecksumException | FormatException ignored) {
           return Boolean.FALSE;
         }
