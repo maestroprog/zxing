@@ -16,13 +16,10 @@
 
 package com.google.zxing;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
-import java.io.File;
-import java.io.IOException;
 
 /**
  * This LuminanceSource implementation is meant for J2SE clients and our blackbox unit tests.
@@ -31,89 +28,74 @@ import java.io.IOException;
  * @author Sean Owen
  * @author code@elektrowolle.de (Wolfgang Jung)
  */
-public final class BufferedImageLuminanceSource extends LuminanceSource {
+public class BufferedImageLuminanceSource extends LuminanceSource {
 
   private static final double MINUS_45_IN_RADIANS = -0.7853981633974483; // Math.toRadians(-45.0)
 
-  private final BufferedImage image;
-  private final LuminanceThresholds thresholds;
+  protected BufferedImage image;
   private final int left;
   private final int top;
 
-  public BufferedImageLuminanceSource(BufferedImage image, LuminanceThresholds thresholds) {
-    this(image, 0, 0, image.getWidth(), image.getHeight(), thresholds);
+  public BufferedImageLuminanceSource(BufferedImage image) {
+    this(image, 0, 0, image.getWidth(), image.getHeight());
   }
 
-  public BufferedImageLuminanceSource(
-    BufferedImage image,
-    int left,
-    int top,
-    int width,
-    int height,
-    LuminanceThresholds thresholds
-  ) {
+  public BufferedImageLuminanceSource(BufferedImage image, int left, int top, int width, int height) {
     super(width, height);
-    this.thresholds = thresholds;
 
-    if (image.getType() == BufferedImage.TYPE_BYTE_GRAY) {
-      this.image = image;
-    } else {
-      int sourceWidth = image.getWidth();
-      int sourceHeight = image.getHeight();
-      if (left + width > sourceWidth || top + height > sourceHeight) {
-        throw new IllegalArgumentException("Crop rectangle does not fit within image data.");
-      }
-
-      this.image = new BufferedImage(sourceWidth, sourceHeight, BufferedImage.TYPE_BYTE_GRAY);
-
-      WritableRaster raster = this.image.getRaster();
-      int[] buffer = new int[width];
-      for (int y = top; y < top + height; y++) {
-        image.getRGB(left, y, width, 1, buffer, 0, sourceWidth);
-        for (int x = 0; x < width; x++) {
-          int pixel = buffer[x];
-
-          // The color of fully-transparent pixels is irrelevant. They are often, technically, fully-transparent
-          // black (0 alpha, and then 0 RGB). They are often used, of course as the "white" area in a
-          // barcode image. Force any such pixel to be white:
-          if ((pixel & 0xFF000000) == 0) {
-            pixel = 0xFFFFFFFF; // = white
-          }
-
-          // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
-          // (306*R) >> 10 is approximately equal to R*0.299, and so on.
-          // 0x200 >> 10 is 0.5, it implements rounding.
-
-//          buffer[x] = pixel | 0x00000000;
-          pixel = (306 * ((pixel >> 16) & 0xFF) +
-            601 * ((pixel >> 8) & 0xFF) +
-            117 * (pixel & 0xFF) +
-            0x200) >> 10;
-          if (thresholds.getLightColor() != 0 || thresholds.getBlackColor() != 0) {
-            if (pixel >= thresholds.getLightColor()) {
-              pixel = 0xFF;
-            } else {
-              pixel = Math.max(0, pixel - thresholds.getBlackColor());
-            }
-          }
-          buffer[x] = pixel;
-        }
-        raster.setPixels(left, y, width, 1, buffer);
-      }
-//      BufferedImage im = new BufferedImage(image.getWidth(),image.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-//      im.setData(raster);
-//      try {
-//        ImageIO.write(im,"png",new File("qrr.png"));
-//      } catch (IOException e) {
-//        e.printStackTrace();
-//      }
-    }
+    this.image = image;
     this.left = left;
     this.top = top;
   }
 
+  protected void prepareImage() {
+    if (image.getType() == BufferedImage.TYPE_BYTE_GRAY) {
+      return;
+    }
+
+    int sourceWidth = image.getWidth();
+    int sourceHeight = image.getHeight();
+    if (left + this.getWidth() > sourceWidth || top + this.getHeight() > sourceHeight) {
+      throw new IllegalArgumentException("Crop rectangle does not fit within image data.");
+    }
+
+    BufferedImage image = this.image;
+    this.image = new BufferedImage(sourceWidth, sourceHeight, BufferedImage.TYPE_BYTE_GRAY);
+
+    int width = getWidth();
+    int height = getHeight();
+
+    WritableRaster raster = this.image.getRaster();
+    int[] buffer = new int[width];
+    for (int y = top; y < top + height; y++) {
+      image.getRGB(left, y, width, 1, buffer, 0, sourceWidth);
+      for (int x = 0; x < width; x++) {
+        int pixel = buffer[x];
+
+        // The color of fully-transparent pixels is irrelevant. They are often, technically, fully-transparent
+        // black (0 alpha, and then 0 RGB). They are often used, of course as the "white" area in a
+        // barcode image. Force any such pixel to be white:
+        if ((pixel & 0xFF000000) == 0) {
+          pixel = 0xFFFFFFFF; // = white
+        }
+
+        // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
+        // (306*R) >> 10 is approximately equal to R*0.299, and so on.
+        // 0x200 >> 10 is 0.5, it implements rounding.
+        buffer[x] =
+          (306 * ((pixel >> 16) & 0xFF) +
+            601 * ((pixel >> 8) & 0xFF) +
+            117 * (pixel & 0xFF) +
+            0x200) >> 10;
+      }
+      raster.setPixels(left, y, width, 1, buffer);
+    }
+  }
+
   @Override
   public byte[] getRow(int y, byte[] row) {
+    prepareImage();
+
     if (y < 0 || y >= getHeight()) {
       throw new IllegalArgumentException("Requested row is outside the image: " + y);
     }
@@ -128,6 +110,8 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
 
   @Override
   public byte[] getMatrix() {
+    prepareImage();
+
     int width = getWidth();
     int height = getHeight();
     int area = width * height;
@@ -144,7 +128,7 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
 
   @Override
   public LuminanceSource crop(int left, int top, int width, int height) {
-    return new BufferedImageLuminanceSource(image, this.left + left, this.top + top, width, height, thresholds);
+    return new BufferedImageLuminanceSource(image, this.left + left, this.top + top, width, height);
   }
 
   /**
@@ -175,7 +159,7 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
 
     // Maintain the cropped region, but rotate it too.
     int width = getWidth();
-    return new BufferedImageLuminanceSource(rotatedImage, top, sourceWidth - (left + width), getHeight(), width, thresholds);
+    return new BufferedImageLuminanceSource(rotatedImage, top, sourceWidth - (left + width), getHeight(), width);
   }
 
   @Override
@@ -203,7 +187,7 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
     int newRight = Math.min(sourceDimension - 1, oldCenterX + halfDimension);
     int newBottom = Math.min(sourceDimension - 1, oldCenterY + halfDimension);
 
-    return new BufferedImageLuminanceSource(rotatedImage, newLeft, newTop, newRight - newLeft, newBottom - newTop, thresholds);
+    return new BufferedImageLuminanceSource(rotatedImage, newLeft, newTop, newRight - newLeft, newBottom - newTop);
   }
 
 }

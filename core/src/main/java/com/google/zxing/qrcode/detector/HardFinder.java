@@ -2,13 +2,12 @@ package com.google.zxing.qrcode.detector;
 
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
-import com.google.zxing.FormatException;
 import com.google.zxing.NotFoundException;
 import com.google.zxing.common.DetectorResult;
 import com.google.zxing.multi.qrcode.detector.MultiFinderPatternFinder;
 
-import java.util.ArrayList;
 import java.util.Map;
+import java.util.function.Function;
 
 public class HardFinder {
 
@@ -40,15 +39,13 @@ public class HardFinder {
 
   /**
    * Поиск с подтверждением и уточнением местонахождения QR кода в определённой позиции.
-   * Возвращает все возможные корректные координаты QR кода.
    */
-  public DetectorResult[] findConfirm(FinderPatternInfo info, int radius) throws NotFoundException {
-
-    ArrayList<DetectorResult> detectorResults = new ArrayList<>();
-
+  public void findConfirm(FinderPatternInfo info, Function<DetectorResult, Boolean> callback) throws NotFoundException {
     FinderPattern tl = info.getTopLeft();
     FinderPattern bl = info.getBottomLeft();
     FinderPattern tr = info.getTopRight();
+
+    int radius = HardQrCodeReader.MAX_RADIUS;
 
     for (int blX = (int) bl.getX(); blX < bl.getX() + radius; blX += 1) {
       for (int blY = (int) bl.getY(); blY < bl.getY() + radius; blY += 1) {
@@ -66,24 +63,25 @@ public class HardFinder {
                 FinderPattern _tr = new FinderPattern(trX, trY, tr.getEstimatedModuleSize(), tr.getCount());
 
                 try {
-                  // Клонируем матрицу чтобы не повредить её для следующих итераций. TODO убедиться что матрица повреждается если не клонировать.
                   Detector detector = new Detector(bitmap.getBlackMatrix());
                   FinderPattern[] centers = {_bl, _tl, _tr};
                   FinderPatternInfo i = new FinderPatternInfo(centers);
 
-                  detectorResults.add(detector.processFinderPatternInfo(i));
+                  try {
+                    if (callback.apply(detector.processFinderPatternInfo(i))) {
+                      return;
+                    }
+                  } catch (Throwable ignored) {
+                    // Вдруг будут непонятные ошибки, пока ничего не делаем.
+                  }
 
-                } catch (NotFoundException | FormatException ignored) {
+                } catch (NotFoundException ignored) {
                 }
               }
             }
           }
         }
       }
-    }
-
-    if (detectorResults.size() > 0) {
-      return detectorResults.toArray(new DetectorResult[0]);
     }
 
     throw NotFoundException.getNotFoundInstance();

@@ -282,6 +282,11 @@ public final class MultiFinderPatternFinder extends FinderPatternFinder {
     for (FinderPattern[] pattern : patternInfo) {
       ResultPoint.orderBestPatterns(pattern);
       result.add(new FinderPatternInfo(pattern));
+
+      if (result.size() > 2) {
+        // Слишком много QR кодов не бывает - уходим отсюда.
+        break;
+      }
     }
 
     if (result.isEmpty()) {
