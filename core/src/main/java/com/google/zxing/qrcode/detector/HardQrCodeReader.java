@@ -15,7 +15,7 @@ import java.util.function.Function;
 
 public class HardQrCodeReader {
 
-  private static int MAX_RADIUS = 2;
+  private static int MAX_RADIUS = 1;
   private static int MAX_STEP = 1;
 
   public static void setMaxRadius(int maxRadius) {
@@ -53,17 +53,17 @@ public class HardQrCodeReader {
 
     LuminanceThresholds[] thresholds = {
       new LuminanceThresholds(0, 0),
-      new LuminanceThresholds(0xA0, 0x60),
-      new LuminanceThresholds(0x90, 0x60),
-      new LuminanceThresholds(0xB0, 0x60),
-      new LuminanceThresholds(0x70, 0x50),
-      new LuminanceThresholds(0x80, 0x60),
-      new LuminanceThresholds(0x70, 0x40),
-      new LuminanceThresholds(0x80, 0x50),
-      new LuminanceThresholds(0x90, 0x50),
-      new LuminanceThresholds(0xA0, 0x50),
-      new LuminanceThresholds(0xB0, 0x90),
-      new LuminanceThresholds(0xC0, 0x90),
+//      new LuminanceThresholds(0xA0, 0x60),
+//      new LuminanceThresholds(0x90, 0x60),
+//      new LuminanceThresholds(0xB0, 0x60),
+//      new LuminanceThresholds(0x70, 0x50),
+//      new LuminanceThresholds(0x80, 0x60),
+//      new LuminanceThresholds(0x70, 0x40),
+//      new LuminanceThresholds(0x80, 0x50),
+//      new LuminanceThresholds(0x90, 0x50),
+//      new LuminanceThresholds(0xA0, 0x50),
+//      new LuminanceThresholds(0xB0, 0x90),
+//      new LuminanceThresholds(0xC0, 0x90),
     };
 
     int tryes = 0;

@@ -111,7 +111,7 @@ public class FinderPatternFinder {
                 if (confirmed) {
                   // Start examining every other line. Checking each line turned out to be too
                   // expensive and didn't improve performance.
-                  iSkip = 1;
+                  iSkip = 2;
                   if (hasSkipped) {
                     done = haveMultiplyConfirmedCenters();
                   } else {
@@ -172,7 +172,7 @@ public class FinderPatternFinder {
    * figures the location of the center of this run.
    */
   private static float centerFromEnd(int[] stateCount, int end) {
-    return (end - stateCount[4] - stateCount[3]) - stateCount[2] / 1.8f;
+    return (end - stateCount[4] - stateCount[3]) - stateCount[2] / 2.0f;
   }
 
   /**
@@ -193,7 +193,7 @@ public class FinderPatternFinder {
       return false;
     }
     float moduleSize = totalModuleSize / 7.0f;
-    float maxVariance = moduleSize / 1.8f;
+    float maxVariance = moduleSize / 2.0f;
     // Allow less than 50% variance from 1-1-3-1-1 proportions
     return
         Math.abs(moduleSize - stateCount[0]) < maxVariance &&

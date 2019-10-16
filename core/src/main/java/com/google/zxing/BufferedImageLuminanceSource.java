@@ -18,11 +18,14 @@ package com.google.zxing;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.color.ColorSpace;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * This LuminanceSource implementation is meant for J2SE clients and our blackbox unit tests.
@@ -35,6 +38,10 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
 
   private static final double MINUS_45_IN_RADIANS = -0.7853981633974483; // Math.toRadians(-45.0)
 
+  public BufferedImage getImage() {
+    return image;
+  }
+
   private final BufferedImage image;
   private final LuminanceThresholds thresholds;
   private final int left;
@@ -44,13 +51,29 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
     this(image, 0, 0, image.getWidth(), image.getHeight(), thresholds);
   }
 
+  private int preparePixel(int pixel) {
+    if ((pixel & 0xFF000000) == 0) {
+      pixel = 0xFFFFFFFF; // = white
+    }
+//
+//          // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
+//          // (306*R) >> 10 is approximately equal to R*0.299, and so on.
+//          // 0x200 >> 10 is 0.5, it implements rounding.
+//
+    pixel = (306 * ((pixel >> 16) & 0xFF) +
+            601 * ((pixel >> 8) & 0xFF) +
+            117 * (pixel & 0xFF) +
+            0x200) >> 10;
+    return pixel;
+  }
+
   public BufferedImageLuminanceSource(
-    BufferedImage image,
-    int left,
-    int top,
-    int width,
-    int height,
-    LuminanceThresholds thresholds
+          BufferedImage image,
+          int left,
+          int top,
+          int width,
+          int height,
+          LuminanceThresholds thresholds
   ) {
     super(width, height);
     this.thresholds = thresholds;
@@ -66,40 +89,109 @@ public final class BufferedImageLuminanceSource extends LuminanceSource {
 
       this.image = new BufferedImage(sourceWidth, sourceHeight, BufferedImage.TYPE_BYTE_GRAY);
 
-      WritableRaster raster = this.image.getRaster();
-      int[] buffer = new int[width];
-      for (int y = top; y < top + height; y++) {
-        image.getRGB(left, y, width, 1, buffer, 0, sourceWidth);
-        for (int x = 0; x < width; x++) {
-          int pixel = buffer[x];
+      float[][] core = {
+              {0.05f, 0.1f, 0.2f, 0.1f, 0.05f},
 
-          // The color of fully-transparent pixels is irrelevant. They are often, technically, fully-transparent
-          // black (0 alpha, and then 0 RGB). They are often used, of course as the "white" area in a
-          // barcode image. Force any such pixel to be white:
-          if ((pixel & 0xFF000000) == 0) {
-            pixel = 0xFFFFFFFF; // = white
-          }
+              {0.1f, 0.5f, 0.5f, 0.5f, 0.1f},
 
-          // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
-          // (306*R) >> 10 is approximately equal to R*0.299, and so on.
-          // 0x200 >> 10 is 0.5, it implements rounding.
+              {0.2f, 0.5f, 1f, 0.5f, 0.2f},
 
-//          buffer[x] = pixel | 0x00000000;
-          pixel = (306 * ((pixel >> 16) & 0xFF) +
-            601 * ((pixel >> 8) & 0xFF) +
-            117 * (pixel & 0xFF) +
-            0x200) >> 10;
-          if (thresholds.getLightColor() != 0 || thresholds.getBlackColor() != 0) {
-            if (pixel >= thresholds.getLightColor()) {
-              pixel = 0xFF;
-            } else {
-              pixel = Math.max(0, pixel - thresholds.getBlackColor());
-            }
-          }
-          buffer[x] = pixel;
-        }
-        raster.setPixels(left, y, width, 1, buffer);
-      }
+              {0.1f, 0.5f, 0.5f, 0.5f, 0.1f},
+
+              {0.05f, 0.1f, 0.2f, 0.1f, 0.05f},
+      };
+
+//      float[][] core = {
+//              {0.1f, 0.3f, 0.5f, 0.3f, 0.1f},
+//
+//              {0.3f, 0.5f, 0.7f, 0.5f, 0.3f},
+//
+//              {0.5f, 0.7f, 1.0f, 0.7f, 0.5f},
+//
+//              {0.1f, 0.5f, 0.7f, 0.5f, 0.3f},
+//
+//              {0.1f, 0.3f, 0.5f, 0.3f, 0.1f},
+//      };
+
+      Graphics g = this.image.getGraphics();
+
+      g.drawImage(image, 0, 0, null);
+      g.dispose();
+
+//      try {
+//        ImageIO.write(this.image,"png",new File("qrr.png"));
+//      } catch (IOException e) {
+//        e.printStackTrace();
+//      }
+
+//      WritableRaster raster = this.image.getRaster();
+//      int[] buffer = new int[width * height];
+//      int[] newbuffer = new int[width * height];
+//      image.getRGB(0, 0, width, height, buffer, 0, sourceWidth);
+//      for (int y = top; y < top + height; y++) {
+//        for (int x = 0; x < width; x++) {
+//          int offset = y * width + x;
+//          buffer[offset] = preparePixel(buffer[offset]);
+//        }
+//      }
+//      double[] influences = new double[25];
+//      for (int y = top; y < top + height - 5; y++) {
+//        for (int x = 0; x < width - 5; x++) {
+//          int offset = y * width + x;
+//          int pixel = buffer[offset];
+//
+//          for (int i = 0; i < 5; i++) {
+//            for (int j = 0; j < 5; j++) {
+//              influences[j * 5 + i] = (buffer[(y + j) * width + (x + i)] - pixel) * core[i][j];
+//            }
+//          }
+//          int result = pixel + (int) (Arrays.stream(influences).sum() / 25) & 0xFF;
+////          if (result > 100) {
+////            result = 255;
+////          }
+////          if (thresholds.getLightColor() != 0 || thresholds.getBlackColor() != 0) {
+////            if (pixel >= thresholds.getLightColor()) {
+////              result = 0xFF;
+////            } else {
+////              result = Math.max(0, result - thresholds.getBlackColor());
+////            }
+////          }
+//          newbuffer[offset] = result;
+//        }
+//      }
+//      raster.setPixels(0, 0, width, height, buffer);
+//      for (int y = top; y < top + height; y++) {
+//        image.getRGB(left, y, width, 1, buffer, 0, sourceWidth);
+//        for (int x = 0; x < width; x++) {
+//          int pixel = buffer[x];
+//
+//          // The color of fully-transparent pixels is irrelevant. They are often, technically, fully-transparent
+//          // black (0 alpha, and then 0 RGB). They are often used, of course as the "white" area in a
+//          // barcode image. Force any such pixel to be white:
+//          if ((pixel & 0xFF000000) == 0) {
+//            pixel = 0xFFFFFFFF; // = white
+//          }
+//
+//          // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
+//          // (306*R) >> 10 is approximately equal to R*0.299, and so on.
+//          // 0x200 >> 10 is 0.5, it implements rounding.
+//
+////          buffer[x] = pixel | 0x00000000;
+//          pixel = (306 * ((pixel >> 16) & 0xFF) +
+//            601 * ((pixel >> 8) & 0xFF) +
+//            117 * (pixel & 0xFF) +
+//            0x200) >> 10;
+//          if (thresholds.getLightColor() != 0 || thresholds.getBlackColor() != 0) {
+//            if (pixel >= thresholds.getLightColor()) {
+//              pixel = 0xFF;
+//            } else {
+//              pixel = Math.max(0, pixel - thresholds.getBlackColor());
+//            }
+//          }
+//          buffer[x] = pixel;
+//        }
+//        raster.setPixels(left, y, width, 1, buffer);
+//      }
 //      BufferedImage im = new BufferedImage(image.getWidth(),image.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
 //      im.setData(raster);
 //      try {
